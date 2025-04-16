@@ -3,50 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title> よていひょう</title>
+  <title>たびのしおり</title>
 
-  <!-- Google Fonts の Poppins を読み込み -->
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@500;700&display=swap" rel="stylesheet">
   
   <style>
     body {
+      display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       text-align: center;
       height: 100vh;
-      margin: 0 auto;
+      margin: 0;
       background-color: #156e73;
+      font-family: 'M PLUS 1p', sans-serif;
     }
+
     h1 {
-      font-size: 4rem;
+      font-size: 3.5rem;
       font-weight: 700;
       color: #161616;
       margin-bottom: 2rem;
     }
-    a {
-      font-size: 4rem;
-      font-weight: 700;
-      color: #161616;
-      text-decoration: none;
-      transition: color 0.3s;
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
     }
+
     .button {
       display: inline-block;
-      margin: 1.5rem;
+      margin: 1rem;
       padding: 1rem 2rem;
-      font-size: 3rem;
+      font-size: 2rem;
       background-color: #161616;
       color: #156e73;
       text-decoration: none;
       border-radius: 8px;
     }
+
+    .map-button {
+      margin-top: 2rem;
+    }
+
+    @media (max-width: 600px) {
+      .button-group {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .map-button {
+        margin-top: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1 style="font-size: 3rem;"> よていひょう</h1>
-  <a class="button" href="day1.html">1日目</a>
-  <a class="button" href="day2.html">2日目</a>
-  <a class="button" href="day3.html">3日目
-  </a>
+  <h1>たびのしおり</h1>
+
+  <div class="button-group">
+    <a class="button" href="day1.html">1日目</a>
+    <a class="button" href="day2.html">2日目</a>
+    <a class="button" href="day3.html">3日目</a>
+  </div>
+
+  <div class="map-button">
+    <a class="button" href="map.html">観光マップ</a>
+  </div>
 </body>
 </html>

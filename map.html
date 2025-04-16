@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>観光マップ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-polylinedecorator/1.1.0/leaflet.polylineDecorator.min.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    #back-button {
+      position: absolute;
+      bottom: 20px;
+      left: 10px;
+      background-color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      z-index: 1000;
+      font-size: 14px;
+      text-decoration: none;
+      color: #333;
+    }
+
+    #legend {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+
+    .floating-menu {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;  /* 縦並び */
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+  }
+  
+   .floating-menu button {
+    all: unset;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s ease;
+  }
+  .floating-menu button:hover {
+    background-color: #e0e0e0;
+  }
+  </style>
+</head>
+<body>
+  <a href="index.html" id="back-button">🏠トップに戻る</a>
+
+  <div id="legend">
+    <b>凡例</b><br />
+    🟦 空港<br />
+    🟪 ホテル<br />
+    🟩 駅<br />
+    🟥 目的地<br />
+    🟨 見どころ<br />
+    ⬛ ゆかりの地
+  </div>
+
+  <div class="floating-menu">
+    <div class="floating-menu">
+        <button onclick="toggleTooltips()">
+            📝 詳細
+        </button>
+        <button onclick="toggleHighlightMarkers()">
+            📍 見どころ
+        </button>
+        <button onclick="toggleTrainRoute1()">
+            🚋 1日目
+        </button>
+        <button onclick="toggleTrainRoute2()">
+            🚃 2日目
+        </button>
+      </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script>
+    const map = L.map('map').setView([35.6758, 139.7606], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    function coloredIcon(color) {
+      return new L.Icon({
+        iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+    }
+
+    const spots = [
+      { name: "羽田空港", lat: 35.5494, lng: 139.7798, type: "airport"},
+      { name: "帝国ホテル", lat: 35.6724, lng: 139.7579, type: "hotel" },
+      { name: "銀座駅", lat: 35.6717, lng: 139.7650, type: "station" },
+      { name: "浅草駅", lat: 35.7099, lng: 139.7971, type: "station" },
+      { name: "日比谷駅", lat: 35.6749, lng: 139.7597, type: "station" },
+      { name: "浅草寺", lat: 35.7148, lng: 139.7967, type: "spot" },
+      { name: "東銀座駅", lat: 35.6686, lng: 139.7669, type: "station" },
+      { name: "東京駅", lat: 35.6812, lng: 139.7671, type: "highlight" },
+      { name: "日比谷シャンテ", "lat": 35.6735, "lng": 139.7606, "type": "highlight" },
+      { name: "歌舞伎座、喫茶YOU", "lat": 35.6694, "lng": 139.7682, "type": "highlight" },
+      { name: "銀座通り（銀座三越、時計塔）", "lat": 35.6710, "lng": 139.7652, "type": "highlight" },
+      { name: "仲見世通り", "lat": 35.7112, "lng": 139.7966, "type": "spot" },
+      { name: "隅田川", "lat": 35.7100, "lng": 139.8000, "type": "highlight" },
+      { name: "スカイツリー", "lat": 35.7101, "lng": 139.8107, "type": "highlight" },
+      { name: "築地本願寺", "lat": 35.6664, "lng": 139.7723, "type": "highlight" },
+      { name: "皇居", "lat": 35.6852, "lng": 139.7528, "type": "highlight" },
+      { name: "レインボーブリッジ", "lat": 35.6457, "lng": 139.7630, "type": "highlight" },
+      { name: "東京タワー", "lat": 35.6586, "lng": 139.7454, "type": "highlight" },
+      { name: "お台場", "lat": 35.6247, "lng": 139.7767, "type": "highlight" },
+      { name: "築地場外市場", "lat": 35.6650, "lng": 139.7704, "type": "spot" },
+      { name: "上野アメ横", "lat": 35.7090, "lng": 139.7747, "type": "highlight" },
+      { name: "レコファン秋葉原", "lat": 35.7008, "lng": 139.7730, "type": "highlight" },
+      { name: "HY'ｓ三ノ輪", "lat": 35.7253, "lng": 139.7909, "type": "me" },
+      { name: "立川駅", "lat": 35.6978, "lng": 139.4134, "type": "me" },
+      { name: "G-7ビルディング", "lat": 35.6665, "lng": 139.7656, "type": "me" },
+    ];
+
+    const colorMap = {
+      airport: "blue",
+      hotel: "violet",
+      station: "green",
+      spot: "red",
+      highlight: "gold",
+      me: "black",
+    };
+
+    const highlightMarkers = [];
+    const otherMarkers = [];
+    const tooltipMarkers = [];
+    
+    spots.forEach(spot => {
+      const icon = coloredIcon(colorMap[spot.type] || "blue");
+      const marker = L.marker([spot.lat, spot.lng], { icon: icon });
+      if (spot.type === "highlight") {
+        marker
+        .bindPopup(`<b>${spot.name}</b>`);
+        highlightMarkers.push(marker);
+        // tooltipのトグル用
+        tooltipMarkers.push({
+            marker,
+            tooltip: `<b>${spot.name}</b>`
+        });
+      } else {
+        marker
+        .bindPopup(`<b>${spot.name}</b>`); 
+        otherMarkers.push(marker);
+        marker.addTo(map);
+        // tooltipのトグル用
+        tooltipMarkers.push({
+            marker,
+            tooltip: `<b>${spot.name}</b>`
+        });
+      }
+    });
+
+    // 見どころボタン
+    let highlightVisible = false;
+    function toggleHighlightMarkers() {
+      highlightVisible = !highlightVisible;
+      highlightMarkers.forEach(marker => {
+        highlightVisible ? marker.addTo(map) : marker.removeFrom(map);
+      });
+    }
+
+    // 表示切替ボタン
+    let tooltipsVisible = false;
+    function toggleTooltips() {
+      tooltipsVisible = !tooltipsVisible;
+      tooltipMarkers.forEach(obj => {
+        const { marker, tooltip } = obj;
+        if (tooltipsVisible) {
+          marker.bindTooltip(tooltip, {
+            permanent: true,
+            direction: "top",
+            offset: [0, -20]
+          }).openTooltip(); // 明示的に開く
+        } else {
+          marker.unbindTooltip();
+        }
+      });
+    };
+
+    // 電車ルートボタン
+    let trainLine1, trainArrows1, trainVisible1 = false;
+    let trainLine2, trainArrows2, trainVisible2 = false;
+    
+    // -------------------
+    // 電車ルート（1日目）
+    // -------------------
+    // 座標をspotから抽出して配列化
+    const routeNames1 = ["銀座駅", "浅草駅", "東銀座駅"];
+    const routeCoords1 = routeNames1.map(name => {
+      const spot1 = spots.find(s => s.name === name);
+      if (spot1) {
+        return [spot1.lat, spot1.lng];
+      } else {
+        console.warn(`${name} が見つかりません`);
+        return null;
+      }
+    });
+    
+    function toggleTrainRoute1() {
+      if (!trainVisible1) {
+        if (trainVisible2) {
+            map.removeLayer(trainLine2);
+            map.removeLayer(trainArrows2);
+            trainVisible2 = false;
+        }
+
+        if (!trainLine1) {
+          trainLine1 = L.polyline(routeCoords1, { color: "green" });
+          trainArrows1 = L.polylineDecorator(trainLine1, {
+            patterns: [{
+              offset: "25%",
+              repeat: "20%",
+              symbol: L.Symbol.arrowHead({
+                pixelSize: 12,
+                pathOptions: { fillOpacity: 1, weight: 0, color: "green" }
+              })
+            }]
+          });
+        }
+        trainLine1.addTo(map);
+        trainArrows1.addTo(map);
+        trainVisible1 = true;
+      } else {
+        map.removeLayer(trainLine1);
+        map.removeLayer(trainArrows1);
+        trainVisible1 = false;
+      }
+    };
+
+    // -------------------
+    // 電車ルート（2日目）
+    // -------------------
+    // 座標をspotから抽出して配列化
+    const routeNames2 = ["東京駅", "日比谷駅"];
+    const routeCoords2 = routeNames2.map(name => {
+      const spot2 = spots.find(s => s.name === name);
+      if (spot2) {
+        return [spot2.lat, spot2.lng];
+      } else {
+        console.warn(`${name} が見つかりません`);
+        return null;
+      }
+    });
+    
+    function toggleTrainRoute2() {
+      if (!trainVisible2) {
+        if (trainVisible1) {
+            map.removeLayer(trainLine1);
+            map.removeLayer(trainArrows1);
+            trainVisible1 = false;
+        }
+        
+        if (!trainLine2) {
+          trainLine2 = L.polyline(routeCoords2, { color: "green" });
+          trainArrows2 = L.polylineDecorator(trainLine2, {
+            patterns: [{
+              offset: "25%",
+              repeat: "20%",
+              symbol: L.Symbol.arrowHead({
+                pixelSize: 12,
+                pathOptions: { fillOpacity: 1, weight: 0, color: "green" }
+              })
+            }]
+          });
+        }
+        trainLine2.addTo(map);
+        trainArrows2.addTo(map);
+        trainVisible2 = true;
+      } else {
+        map.removeLayer(trainLine2);
+        map.removeLayer(trainArrows2);
+        trainVisible2 = false;
+      }
+    };
+
+
+
+
+  </script>
+</body>
+</html>
